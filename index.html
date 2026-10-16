@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#101713">
+<title>InvestFlow</title>
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #0b100e;
+  --panel: #151e19;
+  --green: #a8edbd;
+  --text: #f4f7f4;
+  --muted: #9aa9a0;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+}
+header {
+  padding: 25px 20px;
+  border-bottom: 1px solid #29352e;
+}
+.brand { font-size: 25px; font-weight: 800; }
+.brand span { color: var(--green); }
+main { max-width: 900px; margin: auto; padding: 20px; }
+.eyebrow {
+  color: var(--green);
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+h1 { font-size: 30px; margin: 10px 0; }
+.muted { color: var(--muted); }
+.card {
+  background: var(--panel);
+  border: 1px solid #29352e;
+  border-radius: 18px;
+  padding: 20px;
+  margin: 16px 0;
+}
+.balance { font-size: 35px; font-weight: 800; margin: 12px 0; }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.stat { font-size: 22px; font-weight: 700; margin-top: 10px; }
+label { display: block; margin: 14px 0 6px; color: var(--muted); }
+input, select, button {
+  width: 100%;
+  padding: 13px;
+  border-radius: 11px;
+  font-size: 16px;
+}
+input, select {
+  background: #0b100e;
+  color: white;
+  border: 1px solid #39483e;
+}
+button {
+  background: var(--green);
+  color: #102017;
+  border: none;
+  font-weight: 700;
+  margin-top: 12px;
+}
+.asset {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  border-bottom: 1px solid #29352e;
+  padding: 13px 0;
+}
+.asset:last-child { border: 0; }
+.small { font-size: 13px; color: var(--muted); }
+footer { text-align: center; padding: 30px; color: var(--muted); }
+@media (max-width: 420px) {
+  main { padding: 14px; }
+  .balance { font-size: 29px; }
+  .card { padding: 16px; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">◈ Invest<span>Flow</span></div>
+</header>
+<main>
+  <p class="eyebrow">Seu dinheiro, em movimento</p>
+  <h1>Sua carteira</h1>
+  <p class="muted">Acompanhe seus investimentos em um só lugar.</p>
+
+  <section class="card">
+    <p class="muted">Patrimônio registrado</p>
+    <div class="balance" id="total">R$ 0,00</div>
+    <p class="small">Valores informados por você. Sem conexão com corretoras nesta versão.</p>
+  </section>
+
+  <div class="grid">
+    <section class="card">
+      <div class="muted">Ativos</div>
+      <div class="stat" id="count">0</div>
+    </section>
+    <section class="card">
+      <div class="muted">Renda mensal</div>
+      <div class="stat" id="income">R$ 0,00</div>
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>Adicionar investimento</h2>
+    <form id="form">
+      <label for="name">Nome do ativo</label>
+      <input id="name" placeholder="Ex.: Tesouro Selic" required>
+      <label for="type">Categoria</label>
+      <select id="type">
+        <option>Renda fixa</option>
+        <option>Ações</option>
+        <option>FIIs</option>
+        <option>ETFs</option>
+        <option>Criptomoedas</option>
+        <option>Exterior</option>
+        <option>Outros</option>
+      </select>
+      <label for="value">Valor investido (R$)</label>
+      <input id="value" type="number" min="0.01" step="0.01" placeholder="500,00" required>
+      <label for="income">Renda mensal recebida (R$)</label>
+      <input id="monthly" type="number" min="0" step="0.01" value="0">
+      <button type="submit">Adicionar à carteira</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Meus investimentos</h2>
+    <div id="assets"><p class="muted">Seus investimentos aparecerão aqui.</p></div>
+  </section>
+  <p class="small">InvestFlow — versão inicial. Os dados ficam salvos neste navegador.</p>
+</main>
+<footer>Organize hoje. Construa seu futuro.</footer>
+<script>
+const storageKey = "investflow_assets_v1";
+let assets = [];
+try {
+  const saved = localStorage.getItem(storageKey);
+  assets = saved ? JSON.parse(saved) : [];
+  if (!Array.isArray(assets)) assets = [];
+} catch { assets = []; }
+
+const money = n => Number(n).toLocaleString("pt-BR", {
+  style: "currency", currency: "BRL"
+});
+
+function render() {
+  document.getElementById("total").textContent =
+    money(assets.reduce((s, a) => s + a.value, 0));
+  document.getElementById("count").textContent = assets.length;
+  document.getElementById("income").textContent =
+    money(assets.reduce((s, a) => s + a.monthly, 0));
+
+  const list = document.getElementById("assets");
+  if (!assets.length) {
+    list.innerHTML = '<p class="muted">Seus investimentos aparecerão aqui.</p>';
+    return;
+  }
+  list.innerHTML = "";
+  assets.forEach((a, i) => {
+    const row = document.createElement("div");
+    row.className = "asset";
+    const info = document.createElement("div");
+    const title = document.createElement("strong");
+    title.textContent = a.name;
+    const detail = document.createElement("div");
+    detail.className = "small";
+    detail.textContent = a.type;
+    info.append(title, detail);
+    const right = document.createElement("div");
+    right.style.textAlign = "right";
+    const amount = document.createElement("strong");
+    amount.textContent = money(a.value);
+    const remove = document.createElement("button");
+    remove.textContent = "Excluir";
+    remove.style.padding = "7px";
+    remove.style.marginTop = "6px";
+    remove.onclick = () => {
+      if (confirm("Excluir este investimento?")) {
+        assets.splice(i, 1);
+        save();
+      }
+    };
+    right.append(amount, remove);
+    row.append(info, right);
+    list.append(row);
+  });
+}
+
+function save() {
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(assets));
+    render();
+  } catch {
+    alert("Não foi possível salvar os dados neste navegador.");
+  }
+}
+
+document.getElementById("form").addEventListener("submit", e => {
+  e.preventDefault();
+  const name = document.getElementById("name").value.trim();
+  const type = document.getElementById("type").value;
+  const value = Number(document.getElementById("value").value);
+  const monthly = Number(document.getElementById("monthly").value) || 0;
+  if (!name || !Number.isFinite(value) || value <= 0 ||
+      !Number.isFinite(monthly) || monthly < 0) {
+    alert("Confira os valores informados.");
+    return;
+  }
+  assets.push({ name, type, value, monthly });
+  save();
+  e.target.reset();
+  document.getElementById("monthly").value = "0";
+});
+
+render();
+</script>
+</body>
+</html>
